@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>WebSocket Live Location</title>
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=${API_TOKEN}&lang=ru_RU"
+            type="text/javascript">
+    </script>
+    <link rel="icon" href="static/favicon.svg">
+</head>
+<body>
+<div id="map" style="width: 100vw; height: 100vh"></div>
+</body>
+<script type="application/javascript" src="static/js/global.js"></script>
+<script type="application/javascript" src="static/js/map.js"></script>
+<script type="application/javascript" src="static/js/network.js"></script>
+<script type="application/javascript" src="static/js/app.js"></script>
+<script type="text/javascript">
+    path = '${CONNECT_PATH}';
+    init();
+</script>
+</html>
