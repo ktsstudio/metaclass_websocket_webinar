@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>WebSocket Live Location</title>
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=${CONNECT_TOKEN}&lang=ru_RU"
+            type="text/javascript">
+    </script>
+    <link rel="icon" href="static/favicon.svg">
+    <style>
+        #generate-location {
+            font-family: sans-serif;
+            position: absolute;
+            bottom: 5%;
+            left: 2%;
+            background-color: whitesmoke;
+            opacity: 0.7;
+            -webkit-box-shadow: 0px 4px 8px 0px rgba(34, 60, 80, 0.2);
+            -moz-box-shadow: 0px 4px 8px 0px rgba(34, 60, 80, 0.2);
+            box-shadow: 0px 4px 8px 0px rgba(34, 60, 80, 0.2);
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            display: none;
+        }
+
+        #generate-location:hover {
+            opacity: 1;
+            background-color: whitesmoke;
+        }
+    </style>
+</head>
+<body>
+<div id="map" style="width: 100vw; height: 100vh"></div>
+<div id="generate-location">Сгенерировать случайную позицию</div>
+</body>
+<script type="application/javascript" src="static/js/global.js"></script>
+<script type="application/javascript" src="static/js/utils.js"></script>
+<script type="application/javascript" src="static/js/map.js"></script>
+<script type="application/javascript" src="static/js/network.js"></script>
+<script type="application/javascript" src="static/js/app.js"></script>
+<script type="text/javascript">
+    path = '${CONNECT_PATH}';
+    username = prompt('Введи свое имя', 'Аноним');
+    ymaps.ready(init);
+</script>
+</html>
