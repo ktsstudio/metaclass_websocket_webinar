@@ -1,6 +1,8 @@
 # Пишем websocket-сервер для геолокации на python asyncio
 
-[Ссылка на вебинар](https://metaclass.kts.studio/aiohttp?utm_source=metaclass_github)
+[Ссылка на курс](https://metaclass.kts.studio/aiohttp?utm_source=metaclass_github)
+
+[Ссылка на запись вебинара](https://www.youtube.com/watch?v=9GHbcK4VYDE&feature=youtu.be)
 
 [Ссылка на демонстрацию](https://lms.metaclass.kts.studio/websocket_webinar/)
 
