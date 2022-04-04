@@ -1,6 +1,7 @@
 # Пишем websocket-сервер для геолокации на python asyncio
 
 [Ссылка на вебинар](https://metaclass.kts.studio/aiohttp?utm_source=metaclass_github)
+
 [Ссылка на демонстрацию](https://lms.metaclass.kts.studio/websocket_webinar/)
 
 ## Как запустить локально?
