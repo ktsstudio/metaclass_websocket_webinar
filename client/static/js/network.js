@@ -10,7 +10,7 @@ class Connection {
     }
 
     push = (kind, data) => {
-        this.connection.send(JSON.stringify({kind: kind, data: data}));
+        this.connection.send(JSON.stringify({kind: kind, payload: data}));
     }
 }
 

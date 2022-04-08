@@ -18,5 +18,5 @@ class IndexView(View):
 
 class ConnectView(View):
     async def get(self):
-        ws = await self.store.ws.handle(self.request)
+        ws = await self.store.ws.handle_request(self.request)
         return ws

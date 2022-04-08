@@ -1,8 +1,7 @@
 import os
 
-from aiohttp.abc import Application
-
 from app import BASE_DIR
+from app.base.application import Application
 from app.core.views import ConnectView, IndexView
 
 

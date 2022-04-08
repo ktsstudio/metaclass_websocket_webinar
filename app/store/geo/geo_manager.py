@@ -24,18 +24,16 @@ class GeoManager(BaseAccessor):
         self._users: dict[str, User] = {}
         self._close_tasks: dict[str, Task] = {}
 
-    async def handle_event(self, event: dict):
-        kind = event['kind']
-        data = event['data']
-        user_id = data['id']
-        if kind == ClientEventKind.CONNECT:
-            await self._on_connect(user_id, data)
-        elif kind == ClientEventKind.DISCONNECT:
+    async def handle_event(self, event: Event):
+        user_id = event.payload['id']  # по нашему протоколу клиент всегда присылает поле id
+        if event.kind == ClientEventKind.CONNECT:
+            await self._on_connect(user_id, event.payload)
+        elif event.kind == ClientEventKind.DISCONNECT:
             await self._on_disconnect(user_id)
-        elif kind == ClientEventKind.PING:
-            await self._on_ping(user_id, data['latitude'], data['longitude'])
+        elif event.kind == ClientEventKind.PING:
+            await self._on_ping(user_id, event.payload['latitude'], event.payload['longitude'])
         else:
-            raise NotImplementedError(kind)
+            raise NotImplementedError(event.kind)
 
     async def handle_open(self, user_id: str):
         await self.store.ws.push(
@@ -52,16 +50,9 @@ class GeoManager(BaseAccessor):
     async def handle_close(self, user_id: str):
         await self._on_disconnect(user_id)
 
-    async def _on_connect(self, user_id, data: dict):
-        self._refresh_timeout(user_id)
-
-        latitude, longitude = data['latitude'], data['longitude']
-        name = data['name']
+    async def _on_connect(self, user_id: str, payload: dict):
+        latitude, longitude, name = payload['latitude'], payload['longitude'], payload['name']
         self.logger.info(f'{name} joined! {latitude=}, {longitude=}')
-        try:
-            self._users.pop(user_id)
-        except KeyError:
-            pass
         self._users[user_id] = User(
             id=user_id,
             name=name,
@@ -83,33 +74,16 @@ class GeoManager(BaseAccessor):
             }
         ), except_of=[user_id])
 
-    async def _on_ping(self, user_id, latitude, longitude):
-        self._refresh_timeout(user_id)
-
+    async def _on_ping(self, user_id: str, latitude: float, longitude: float):
         user = self._users[user_id]
         self.logger.info(f'ping from {user.name}')
 
         if abs(user.latitude - latitude) > 0.05 or abs(user.longitude - longitude) > 0.05:
             self.logger.info(f'{user.name} moved!')
-            user.latitude = latitude
-            user.longitude = longitude
+            user.latitude, user.longitude = latitude, longitude
             await self.store.ws.push_all(Event(
                 kind=ServerEventKind.MOVE,
                 payload=asdict(user),
             ), except_of=[user_id])
         else:
-            user.latitude = latitude
-            user.longitude = longitude
-
-    def _refresh_timeout(self, user_id: str):
-        task = self._close_tasks.get(user_id)
-        if task:
-            task.cancel()
-
-        self._close_tasks[user_id] = asyncio.create_task(self._close_by_timeout(user_id))
-
-    async def _close_by_timeout(self, user_id: str):
-        await asyncio.sleep(60)
-        user = self._users[user_id]
-        self.logger.info(f'{user.name} left by timeout...')
-        await self.store.ws.close(uuid.UUID(user_id))
+            user.latitude, user.longitude = latitude, longitude

@@ -1,12 +1,11 @@
-class ClientEventKind:
-    CONNECT = 'connect'
-    PING = 'ping'
-    DISCONNECT = 'disconnect'
-
-
 class ServerEventKind:
-    INITIAL = 'initial'
-    ADD = 'add'
-    MOVE = 'move'
-    REMOVE = 'remove'
+    INITIAL = 'initial'  # отправляется при установке соединения с клиентом, сообщает ему выданный id
+    ADD = 'add'  # сообщает клиенту, что к сервису подключился новый пользователь
+    MOVE = 'move'  # сообщает клиенту, что определенный пользователь изменил свою геопозицию
+    REMOVE = 'remove'  # сообщает клиенту, что от сервиса отключился пользователь
 
+
+class ClientEventKind:
+    CONNECT = 'connect'  # отправляется в ответ на ServerEventKind.INITIAL, содержит данные о клиенте
+    PING = 'ping'  # отправляется клиентом раз в n секунд, содержит данные о текущей геопозиции
+    DISCONNECT = 'disconnect'  # отправляется клиентом при ручном отсоединении от сервиса
