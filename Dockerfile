@@ -11,8 +11,6 @@ RUN pip wheel -r /requirements.txt
 
 
 FROM python:3.9-slim
-ARG API_TOKEN
-ARG CONNECT_PATH
 ENV PYTHONUNBUFFERED=1
 
 COPY --from=builder /wheels /wheels
@@ -25,6 +23,8 @@ RUN pip install /wheels/* \
 WORKDIR /code
 COPY . .
 
+ARG API_TOKEN
+ARG CONNECT_PATH
 RUN cat client/index.html | envsubst > client/index.html.new && mv client/index.html.new client/index.html
 
 ENTRYPOINT ["python"]

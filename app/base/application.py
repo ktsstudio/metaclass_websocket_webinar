@@ -1,14 +1,13 @@
-import typing
 from logging import Logger
 
 from aiohttp import web
 
-from app.store.store import Store
+from app.store import Store
 
 
 class Application(web.Application):
     store: "Store"
-    logger: typing.Optional[Logger] = None
+    logger: Logger
 
 
 class Request(web.Request):
@@ -16,13 +15,13 @@ class Request(web.Request):
 
     @property
     def app(self) -> "Application":
-        return super().app
+        return super().app  # type: ignore
 
 
 class View(web.View):
     @property
     def request(self) -> Request:
-        return super().request
+        return super().request  # type: ignore
 
     @property
     def app(self) -> "Application":

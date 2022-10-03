@@ -5,7 +5,7 @@ from aiohttp import web
 
 from app.base.application import Application
 from app.core.routes import setup_routes
-from app.store.store import Store
+from app.store import Store
 
 
 def create_app() -> Application:

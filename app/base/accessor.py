@@ -1,7 +1,7 @@
 import typing
 
 if typing.TYPE_CHECKING:
-    from app.store.store import Store
+    from app.store import Store
 
 
 class BaseAccessor:
@@ -11,8 +11,13 @@ class BaseAccessor:
     def __init__(self, store: "Store"):
         self.app = store.app
         self.store = store
-        self._init_()
         self.logger = store.app.logger.getChild(self.Meta.name)
+        self._init_()
 
     def _init_(self) -> None:
         return None
+
+
+class BaseManager(BaseAccessor):
+    class Meta:
+        name = 'base_manager'

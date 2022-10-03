@@ -1,89 +1,103 @@
-from dataclasses import dataclass, asdict
+from dataclasses import asdict
 
-from app.base.accessor import BaseAccessor
-from app.store.geo.events import ClientEventKind, ServerEventKind
+from app.base.accessor import BaseManager
 from app.store.ws.ws_accessor import Event
 
 
-@dataclass
-class User:
-    id: str
-    latitude: float
-    longitude: float
-    name: str
+class GeoServerEventKind:
+    INITIAL = 'initial'
+    ADD = 'add'
+    MOVE = 'move'
+    REMOVE = 'remove'
 
 
-class GeoManager(BaseAccessor):
+class GeoClientEventKind:
+    CONNECT = 'connect'
+    DISCONNECT = 'disconnect'
+    PING = 'ping'
+
+
+class GeoManager(BaseManager):
     class Meta:
-        name = 'geo'
+        name = 'geo_manager'
 
-    def _init_(self) -> None:
-        self._users: dict[str, User] = {}
+    MAX_ERROR = 0.05
 
-    async def handle_event(self, event: dict):
-        kind = event['kind']
-        data = event['data']
-        user_id = data['id']
-        self.logger.info(f'New event with kind {kind} and payload {data}')
-        if kind == ClientEventKind.CONNECT:
-            await self._on_connect(user_id, data)
-        elif kind == ClientEventKind.DISCONNECT:
-            await self._on_disconnect(user_id)
-        elif kind == ClientEventKind.PING:
-            await self._on_ping(user_id, data['latitude'], data['longitude'])
+    async def handle(self, connection_id: str):
+        await self._send_initial_event(connection_id)
+        async for event in self.store.ws_accessor.stream(connection_id):
+            should_continue = await self._handle_event(event, connection_id)
+            if not should_continue:
+                break
+
+    async def _handle_event(self, event: Event, connection_id: str) -> bool:
+        if event.kind == GeoClientEventKind.CONNECT:
+            user = await self.store.users_accessor.add(
+                _id=connection_id,
+                name=event.payload['name'],
+                latitude=event.payload['latitude'],
+                longitude=event.payload['longitude'],
+            )
+            self.logger.info(f'New user connected: {user}')
+            payload = asdict(user)
+            payload['id'] = connection_id
+            event = Event(
+                kind=GeoServerEventKind.ADD,
+                payload=payload,
+            )
+            await self.store.ws_accessor.broadcast(
+                event,
+                except_of=[connection_id],
+            )
+            return True
+        elif event.kind == GeoClientEventKind.DISCONNECT:
+            user = await self.store.users_accessor.get(_id=connection_id)
+            self.logger.info(f'User {user} disconnected')
+            await self.on_user_disconnect(connection_id)
+            return True
+        elif event.kind == GeoClientEventKind.PING:
+            user = await self.store.users_accessor.get(connection_id)
+            latitude = event.payload['latitude']
+            longitude = event.payload['longitude']
+
+            if abs(user.latitude - latitude) > self.MAX_ERROR or abs(user.longitude - longitude) > self.MAX_ERROR:
+                await self.store.ws_accessor.broadcast(
+                    event=Event(
+                        kind=GeoServerEventKind.MOVE,
+                        payload={
+                            'id': user.id,
+                            'latitude': latitude,
+                            'longitude': longitude,
+                        }
+                    ),
+                    except_of=[connection_id],
+                )
+                await self.store.users_accessor.update_coords(
+                    _id=user.id,
+                    latitude=latitude,
+                    longitude=longitude,
+                )
+            return True
         else:
-            raise NotImplementedError(kind)
+            raise NotImplementedError
 
-    async def handle_open(self, user_id: str):
-        await self.store.ws.push(
-            user_id,
+    async def _send_initial_event(self, connection_id: str):
+        event = Event(
+            kind=GeoServerEventKind.INITIAL,
+            payload={
+                'users': [asdict(user) for user in await self.store.users_accessor.list_users()]
+            },
+        )
+        await self.store.ws_accessor.push(event, connection_id=connection_id)
+
+    async def on_user_disconnect(self, connection_id: str) -> None:
+        await self.store.users_accessor.remove(connection_id)
+        await self.store.ws_accessor.broadcast(
             event=Event(
-                kind=ServerEventKind.INITIAL,
+                kind=GeoServerEventKind.REMOVE,
                 payload={
-                    'id': str(user_id),
-                    'users': [asdict(_user) for _user in self._users.values()],
+                    'id': connection_id,
                 },
             ),
+            except_of=[connection_id],
         )
-
-    async def handle_close(self, user_id: str):
-        await self._on_disconnect(user_id)
-
-    async def _on_connect(self, user_id, data: dict):
-        latitude, longitude = data['latitude'], data['longitude']
-        name = data['name']
-        try:
-            self._users.pop(user_id)
-        except KeyError:
-            pass
-        self._users[user_id] = User(
-            id=user_id,
-            name=name,
-            latitude=latitude,
-            longitude=longitude,
-        )
-        await self.store.ws.push_all(Event(
-            kind=ServerEventKind.ADD,
-            payload=asdict(self._users[user_id]),
-        ), except_of=[user_id])
-
-    async def _on_disconnect(self, user_id: str):
-        self._users.pop(user_id)
-        await self.store.ws.push_all(Event(
-            kind=ServerEventKind.REMOVE,
-            payload={
-                'id': user_id,
-            }
-        ), except_of=[user_id])
-
-    async def _on_ping(self, user_id, latitude, longitude):
-        user = self._users[user_id]
-
-        if user.latitude - latitude > 0.05 or user.longitude - longitude > 0.05:
-            await self.store.ws.push_all(Event(
-                kind=ServerEventKind.MOVE,
-                payload=asdict(user),
-            ), except_of=[user_id])
-
-        user.latitude = latitude
-        user.longitude = longitude

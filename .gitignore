@@ -1,3 +1,5 @@
 .idea/
 venvcle/
+venv/
 *__pycache__*
+.python-version

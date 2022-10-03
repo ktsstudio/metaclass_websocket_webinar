@@ -1,22 +1,24 @@
 init = () => {
-    username = prompt('Введи свое имя', 'Аноним');
-    ymaps.ready(initMap);
+    initMap();
     if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(handlePosition);
+        navigator.geolocation.getCurrentPosition(handlePosition, chooseFakePositioning);
     } else {
-        alert('Извини, но похоже твой браузер не поддерживает геолокацию')
+        chooseFakePositioning();
     }
 }
+
+chooseFakePositioning = () => {
+    console.log('Не получается узнать настоящее местоположение');
+    setFakePosition();
+    generateLocationButton.style.display = 'block';
+    useFakeLocation = true;
+    getFakePosition(handlePosition);
+}
+
 
 handlePosition = (position) => {
     setCurrentPosition(position);
     connection = new Connection(onOpen, onMessage, onClose, onError);
-}
-
-
-setCurrentPosition = (position) => {
-    latitude = position.coords.latitude;
-    longitude = position.coords.longitude;
 }
 
 
@@ -47,17 +49,22 @@ onFullyConnected = (payload) => {
         latitude: latitude,
         longitude: longitude,
     });
-    addMark(id, latitude, longitude);
-    for (let user in payload['users']) {
+
+    for (let user of payload['users']) {
         addMark(user['id'], user['latitude'], user['longitude'], user['name'], OTHER_COLOR);
     }
-    setInterval(() => navigator.geolocation.getCurrentPosition(ping, (e) => console.log(e)), 5000);
+    if (useFakeLocation) {
+        setInterval(() => getFakePosition(ping, (e) => console.log(e)), 1000);
+    } else {
+        setInterval(() => navigator.geolocation.getCurrentPosition(ping, (e) => console.log(e)), 1000);
+    }
 
 }
 
 ping = (position) => {
-    latitude = position.coords.latitude;
-    longitude = position.coords.longitude;
+    if (!run) return;
+    removeMark('initial');
+    setCurrentPosition(position);
     console.log(`ping with latitude: ${latitude}, longitude: ${longitude}`);
     connection.push(PING_EVENT, {
         id: id,
@@ -79,10 +86,14 @@ onClose = () => {
         {
             id: id,
         }
-    )
+    );
+    run = false;
 }
 
 
 onError = (e) => {
-    console.log(`connection closed with error ${e}`)
+    console.log(`connection closed with error ${e}`);
+    run = false;
 }
+
+generateLocationButton.addEventListener('click', setFakePosition);

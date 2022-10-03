@@ -1,6 +1,6 @@
 class Connection {
     constructor(onOpen, onMessage, onClose, onError) {
-        if (path === '${PATH}') {
+        if (path === '${CONNECT_PATH}') {
             path = 'ws://localhost:8000/connect';
         }
         this.connection = new WebSocket(path);
@@ -10,7 +10,7 @@ class Connection {
     }
 
     push = (kind, data) => {
-        this.connection.send(JSON.stringify({kind: kind, data: data}));
+        this.connection.send(JSON.stringify({kind: kind, payload: data}));
     }
 }
 

@@ -2,10 +2,13 @@
 let connection;
 let map;
 let path;
+let run = true;
+let generateLocationButton = document.getElementById('generate-location')
+let useFakeLocation = false;
 
 // user
 let username;
-let id;
+let id = 'initial';
 let latitude, longitude;
 
 const MY_COLOR = 'green';
